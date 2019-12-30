@@ -2,7 +2,7 @@
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
         <meta charset='utf-8' />
-        <title>Carga Datos desde retrospecto</title>
+        <title>Carga Datos desde retrospecto oficial de INH</title>
 
         <style type="text/css">
             .agregado { display: inline-block; padding: 8px; background: #9EE1FF; border: 1px #002B63 solid; margin: 5px; }
@@ -16,8 +16,7 @@
 
 include("conexion.php");
 
-
-echo "Hola <br>";
+echo "Iniciando <br><br>";
 
 /** Se incluye el Parche **/
 set_include_path(get_include_path() . PATH_SEPARATOR . 'Classes/');
@@ -52,17 +51,17 @@ echo "  <div style='width:500px; background: #f1f1f1!important; padding: 5px; he
             <div id='temp_agabe' style='text-align:center; width:0%; background: white; height: 22px;'></div>
         </div><br><br>";
 
-$hipodromo = "La Rinconada";
+$racecourse = "La Rinconada";
 
-$c1 = "SELECT * FROM hipodromo WHERE descripcion = '$hipodromo'";
+$c1 = "SELECT * FROM racecourses WHERE name = '$racecourse'";
 $ec1 = $conexion->query($c1);
 $rc1 = $ec1->num_rows;
 
 if ($rc1 > 0) {
     $fc1 = $ec1->fetch_assoc();
 
-    $id_hipodromo = $fc1['id_hipodromo'];
-    $acro_hipodromo = $fc1['acro'];
+    $id_hipodromo = $fc1['id'];
+    $acro_hipodromo = $fc1['acro_2'];
 }
 
 //  Loop through each row of the worksheet in turn
@@ -113,7 +112,7 @@ for ($row = 1; $row <= $highestRow; $row++){
         if (preg_match("/Descripción/", $dato1)) {
             $des = $dato1;
             $descri = explode("Descripción de la Condición:", $des);
-            $descripcion = addslashes(trim($descri[1]));
+            $descripcion = utf8_decode(addslashes(trim($descri[1])));
 
             echo "Título: $descripcion<br>";
 
@@ -134,12 +133,12 @@ for ($row = 1; $row <= $highestRow; $row++){
 
             echo "$distancia <br>";
 
-            $c2 = "SELECT * FROM carrera WHERE codigo = '$cod_carrera'";
+            $c2 = "SELECT * FROM careers WHERE code = '$cod_carrera'";
             $ec2 = $conexion->query($c2);
             $rc2 = $ec2->num_rows;
 
             if ($rc2 == 0) {
-                $c3 = "INSERT INTO carrera (codigo, id_hipodromo, fecha_hora, distancia, superficie, numero, valida, descripcion) VALUES ('$cod_carrera','$id_hipodromo','$fecha_hora','$distancia','1', '$nro_carrera', '0', '$descripcion')";
+                $c3 = "INSERT INTO careers (code, racecourse_id, date, distance, surface, number, valid, title) VALUES ('$cod_carrera','$id_hipodromo','$fecha_hora','$distancia','1', '$nro_carrera', '0', '$descripcion')";
                 $ec3 = $conexion->query($c3);
                 if($ec3){
                     $id_carrera = $conexion->insert_id; 
@@ -150,11 +149,11 @@ for ($row = 1; $row <= $highestRow; $row++){
             } else {
                 $fc2 = $ec2->fetch_assoc();
 
-                $id_carrera = $fc2['id_carrera'];
+                $id_carrera = $fc2['id'];
             }
         }
         if (is_numeric($dato1)) {
-            $nombre = addslashes(ucwords(mb_strtolower(($rowData['0']['1']))));
+            $nombre = utf8_decode(addslashes(ucwords(mb_strtolower(($rowData['0']['1'])))));
             $numero = $dato1;
 
             $peso = $rowData['0']['9'];
@@ -164,20 +163,20 @@ for ($row = 1; $row <= $highestRow; $row++){
 
             $puesto = trim($rowData['0']['20']);
 
-            $cc1 = "SELECT * FROM caballo WHERE nombre = '$nombre'";
+            $cc1 = "SELECT * FROM horses WHERE name = '$nombre'";
             $ecc1 = $conexion->query($cc1);
             $rcc1 = $ecc1->num_rows;
 
             if ($rcc1 == 0) {
                 
-                $s1 = " SELECT * FROM caballo WHERE (tipo_caballo = '3') ORDER BY id_caballo DESC";
+                $s1 = " SELECT * FROM horses WHERE (breed = '') ORDER BY id DESC LIMIT 1";
                 $es1 = $conexion->query($s1);
                 $ns1 = $es1->num_rows;
 
                 if ($ns1 > 0) {
                     $rs1 = $es1->fetch_assoc();
 
-                    $codigo_ult_cab = $rs1["codigo"];
+                    $codigo_ult_cab = $rs1["code"];
                     $solo_n_c_u_c = explode("CAB", $codigo_ult_cab);
                     $nuevo_s_c_u_c = $solo_n_c_u_c[1] + 1;
 
@@ -194,7 +193,7 @@ for ($row = 1; $row <= $highestRow; $row++){
 
                 echo "$codigo_final_cab <br>";                
 
-                $cc2 = "INSERT INTO caballo (codigo, nombre, sexo, tipo_caballo) VALUES ('$codigo_final_cab','$nombre','$sexo','3')";
+                $cc2 = "INSERT INTO horses (code, name, sex, breed) VALUES ('$codigo_final_cab','$nombre','$sexo','')";
                 $ecc2 = $conexion->query($cc2);
                 if($ecc2){
                     $id_caballo = $conexion->insert_id; 
@@ -205,15 +204,15 @@ for ($row = 1; $row <= $highestRow; $row++){
             } else {
                 $fcc1 = $ecc1->fetch_assoc();
 
-                $id_caballo = $fcc1['id_caballo'];
+                $id_caballo = $fcc1['id'];
             }
 
-            $cc3 = "SELECT * FROM inscripcion WHERE id_caballo = '$id_caballo' AND id_carrera = '$id_carrera'";
+            $cc3 = "SELECT * FROM inscriptions WHERE horse_id = '$id_caballo' AND career_id = '$id_carrera'";
             $ecc3 = $conexion->query($cc3);
             $rcc3 = $ecc3->num_rows;
 
             if ($rcc3 == 0) {
-                $cc4 = "INSERT INTO inscripcion (id_caballo, id_carrera, peso, numero, puesto) VALUES ('$id_caballo','$id_carrera','$peso','$numero','$puesto')";
+                $cc4 = "INSERT INTO inscriptions (horse_id, career_id, weight, number, position) VALUES ('$id_caballo','$id_carrera','$peso','$numero','$puesto')";
                 $ecc4 = $conexion->query($cc4);
                 if($ecc4){
                     $id_inscripcion = $conexion->insert_id; 
